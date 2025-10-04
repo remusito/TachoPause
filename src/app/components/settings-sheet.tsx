@@ -81,7 +81,7 @@ export function SettingsSheet() {
 
   // Assuming version is from package.json, which is not directly accessible on client.
   // Hardcoding for now. A better approach would be to expose it via build process.
-  const appVersion = '1.0.0-dev';
+  const appVersion = '1.0.1-dev';
 
   const handleDonate = () => {
     purchasePremium();
@@ -95,18 +95,11 @@ export function SettingsSheet() {
   const handleActivateCode = () => {
     if (cheatCode.toLowerCase() === 'desmayao') {
       unlockPremium('DESMAYAO');
-      toast({
-        title: '¡Funciones Premium Desbloqueadas!',
-        description: 'Disfruta de todas las funciones premium durante 2 horas.',
-      });
+      unlockAchievement('first_use');
       setCheatCode('');
     } else if (cheatCode.toLowerCase() === 'desmayaototal'){
       unlockPremium('DESMAYAOTOTAL');
-      toast({
-        title: '¡Funciones Premium Desbloqueadas!',
-        description: 'Has desbloqueado la versión completa. ¡Disfrútala!',
-      });
-       setCheatCode('');
+      setCheatCode('');
     } else {
         toast({
             title: 'Código incorrecto',
@@ -125,7 +118,7 @@ export function SettingsSheet() {
     try {
         if (navigator.share) {
             await navigator.share(shareData);
-            toast({ title: '¡Gracias por compartir!' });
+            
         } else {
             // Fallback for desktop or browsers that don't support navigator.share
             await navigator.clipboard.writeText(shareData.url);
