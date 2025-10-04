@@ -85,9 +85,11 @@ export function SettingsSheet() {
   const appVersion = '1.0.1-dev';
 
   const handleDonate = () => {
+    const paypalUrl = 'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=rcerezomartin@gmail.com&item_name=Apoyo+TachoPause+Optimizer&amount=1.99&currency_code=EUR';
+    window.open(paypalUrl, '_blank');
     toast({
-      title: 'Opción no disponible',
-      description: 'La compra directa todavía no está implementada. Puedes usar un código secreto si tienes uno.',
+      title: 'Gracias por tu apoyo',
+      description: 'Una vez completado el pago, recibirás tu código de activación por privado.',
     });
   };
 

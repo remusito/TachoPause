@@ -33,14 +33,16 @@ interface PremiumPlaceholderProps {
 }
 
 export const PremiumPlaceholder: React.FC<PremiumPlaceholderProps> = ({ children, title, description }) => {
-  const { isPremium, unlockPremium, purchasePremium } = usePremium();
+  const { isPremium, unlockPremium } = usePremium();
   const { toast } = useToast();
   const [cheatCode, setCheatCode] = useState('');
 
   const handleDonate = () => {
+    const paypalUrl = 'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=rcerezomartin@gmail.com&item_name=Apoyo+TachoPause+Optimizer&amount=1.99&currency_code=EUR';
+    window.open(paypalUrl, '_blank');
     toast({
-      title: 'Opción no disponible',
-      description: 'La compra directa todavía no está implementada. Puedes usar un código secreto si tienes uno.',
+      title: 'Gracias por tu apoyo',
+      description: 'Una vez completado el pago, recibirás tu código de activación por privado.',
     });
   };
 
