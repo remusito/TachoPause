@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   title: 'TachoPause Optimizer',
   description: 'Optimize your truck driver breaks with the one-minute rule.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-192x192.png',
+    apple: '/icon-180x180.png',
+  },
 };
 
 export const viewport: Viewport = {
@@ -40,7 +44,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="TachoPause" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="icon" href="/icon-192x192.png" />
       </head>
       <body
         className={cn(
