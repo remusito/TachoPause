@@ -1,17 +1,21 @@
 {
-  "name": "TachoPause Optimizer",
-  "short_name": "TachoPause",
-  "description": "Optimize your truck driver breaks with the one-minute rule.",
-  "icons": [
-    {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    }
-  ],
-  "theme_color": "#3F51B5",
-  "background_color": "#ffffff",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+    "name": "TachoPause Optimizer",
+    "short_name": "TachoPause",
+    "description": "Optimize your truck driver breaks with the one-minute rule.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#222f5a",
+    "theme_color": "#3F51B5",
+    "icons": [
+        {
+            "src": "/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
 }
