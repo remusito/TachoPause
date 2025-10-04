@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -84,12 +85,10 @@ export function SettingsSheet() {
   const appVersion = '1.0.1-dev';
 
   const handleDonate = () => {
-    purchasePremium();
     toast({
-      title: '¡Gracias por tu apoyo!',
-      description: 'Has desbloqueado permanentemente las funciones Premium.',
+      title: 'Opción no disponible',
+      description: 'La compra directa todavía no está implementada. Puedes usar un código secreto si tienes uno.',
     });
-    window.open('https://paypal.me/rcerezomartin/5', '_blank');
   };
 
   const handleActivateCode = () => {

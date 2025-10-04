@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePremium } from "@/hooks/use-premium";
@@ -37,14 +38,10 @@ export const PremiumPlaceholder: React.FC<PremiumPlaceholderProps> = ({ children
   const [cheatCode, setCheatCode] = useState('');
 
   const handleDonate = () => {
-    // This is a simulation. In a real app, you'd handle the purchase flow.
-    // After a successful "purchase", call purchasePremium()
-    purchasePremium();
     toast({
-      title: '¡Gracias por tu apoyo!',
-      description: 'Has desbloqueado permanentemente las funciones Premium.',
+      title: 'Opción no disponible',
+      description: 'La compra directa todavía no está implementada. Puedes usar un código secreto si tienes uno.',
     });
-    window.open('https://paypal.me/rcerezomartin', '_blank');
   };
 
   const handleActivateCode = () => {
