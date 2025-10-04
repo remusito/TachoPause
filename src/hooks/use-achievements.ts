@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useToast } from './use-toast';
-import { allAchievements, type Achievement, type AchievementId } from '@/lib/achievements';
+import { allAchievements, type AchievementId } from '@/lib/achievements';
 
 const ACHIEVEMENTS_STORAGE_KEY = 'achievements-storage';
 
@@ -19,7 +18,6 @@ const getTodayString = () => new Date().toISOString().split('T')[0];
 
 export function useAchievements() {
   const [achievements, setAchievements] = useState<AchievementState>({});
-  const { toast } = useToast();
 
   // Load achievements from localStorage on mount
   useEffect(() => {
@@ -56,11 +54,7 @@ export function useAchievements() {
       [id]: { ...prev[id], unlocked: true, progress: achievementDef.goal, unlockedAt: Date.now() },
     }));
 
-    toast({
-      title: '🏆 ¡Logro Desbloqueado!',
-      description: achievementDef.title,
-    });
-  }, [achievements, toast]);
+  }, [achievements]);
 
   const updateAchievementProgress = useCallback((id: AchievementId, value: number) => {
     const achievementDef = allAchievements.find(a => a.id === id);
