@@ -84,31 +84,41 @@ export function PauseTracker() {
     };
   }, [isActive, state]);
 
+
   useEffect(() => {
     let timerInterval: NodeJS.Timeout | null = null;
 
     if (isActive && countdown > 0) {
       timerInterval = setInterval(() => {
         setCountdown((prev) => prev - 1);
+        // Beep every second on the warning state
+        if (state === 'yellow-warn') {
+            playSound('alert');
+        }
       }, 1000);
     } else if (isActive && countdown === 0) {
       // State transitions
-      playSound('alert');
+      
       switch (state) {
         case 'yellow-start':
+          playSound('alert');
           setState('green');
           setCountdown(50);
           break;
         case 'green':
+          // We are about to transition to yellow-warn
+          playSound('alert');
           setState('yellow-warn');
           setCountdown(10);
           break;
         case 'yellow-warn':
+          playSound('alert');
           setState('red');
           setCountdown(60);
           break;
         case 'red':
           trackCycleStart(); // A full cycle is completed when red is over.
+          playSound('alert');
           setState('green');
           setCountdown(50);
           break;
@@ -250,4 +260,8 @@ export function PauseTracker() {
     </>
   );
 }
+
+
+
+
 
