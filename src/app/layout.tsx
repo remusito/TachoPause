@@ -9,7 +9,7 @@ import { AchievementsProvider } from '@/hooks/use-achievements-provider';
 export const metadata: Metadata = {
   title: 'TachoPause Optimizer',
   description: 'Optimize your truck driver breaks with the one-minute rule.',
-  icons: null,
+  manifest: '/manifest.json',
 };
 
 export const viewport: Viewport = {
@@ -40,8 +40,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="TachoPause" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="icon" href="/icon-192x192.png" />
       </head>
       <body
         className={cn(
