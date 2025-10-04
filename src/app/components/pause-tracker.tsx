@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Icons } from '@/components/icons';
@@ -31,39 +31,10 @@ export function PauseTracker() {
   const [isBlinking, setIsBlinking] = useState(false);
   const [isActive, setIsActive] = useState(false);
   
-  const { toast } = useToast();
   const { trackCycleStart } = useAchievements();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const alertAudioRef = useRef<HTMLAudioElement>(null);
+  const clickAudioRef = useRef<HTMLAudioElement>(null);
 
-  const unlockAudio = () => {
-    if (audioUnlocked) return;
-    setAudioUnlocked(true); // Set state immediately
-    if (audioRef.current) {
-      audioRef.current.muted = true; // Play silently to unlock
-      audioRef.current.play().then(() => {
-        audioRef.current?.pause();
-        audioRef.current!.currentTime = 0;
-        audioRef.current!.muted = false; // Unmute for future plays
-        console.log("Audio desbloqueado por el usuario.");
-      }).catch(error => {
-        console.error("Fallo al desbloquear el audio:", error);
-        setAudioUnlocked(false); // Revert on failure
-      });
-    }
-  }
-
-  const playSound = () => {
-    if (audioRef.current && audioUnlocked) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(error => {
-        console.error("Error al reproducir el sonido:", error);
-      });
-    } else {
-        console.log("El audio no está desbloqueado. Se requiere interacción del usuario.");
-    }
-  };
-  
   // Blinking effect for yellow states
   useEffect(() => {
     let blinkInterval: NodeJS.Timeout | null = null;
@@ -88,31 +59,24 @@ export function PauseTracker() {
       }, 1000);
     } else if (isActive && countdown === 0) {
       // State transitions
+      alertAudioRef.current?.play().catch(console.error);
       switch (state) {
         case 'yellow-start':
           setState('green');
           setCountdown(50);
-          playSound();
-          toast({ title: '¡A conducir!', description: 'Periodo de conducción iniciado.' });
           break;
         case 'green':
           setState('yellow-warn');
           setCountdown(10);
-          playSound();
-          toast({ title: '¡Atención!', description: 'Prepárate para la pausa.', variant: 'destructive' });
           break;
         case 'yellow-warn':
           setState('red');
           setCountdown(60);
-          toast({ title: 'Pausa Obligatoria', description: 'Tiempo de descanso.', variant: 'destructive' });
           break;
         case 'red':
-          // Loop back to green
           trackCycleStart(); // A full cycle is completed when red is over.
           setState('green');
           setCountdown(50);
-          playSound();
-          toast({ title: '¡A conducir!', description: 'Periodo de conducción iniciado.' });
           break;
       }
     }
@@ -120,15 +84,33 @@ export function PauseTracker() {
     return () => {
       if (timerInterval) clearInterval(timerInterval);
     };
-  }, [isActive, countdown, state, toast, audioUnlocked, trackCycleStart]);
+  }, [isActive, countdown, state, trackCycleStart]);
+
+  const primeAudio = () => {
+    // This is the most robust way to unlock audio on user interaction
+    if (clickAudioRef.current && alertAudioRef.current) {
+        clickAudioRef.current.load();
+        alertAudioRef.current.load();
+        
+        clickAudioRef.current.play().catch(() => {});
+        clickAudioRef.current.pause();
+        clickAudioRef.current.currentTime = 0;
+
+        alertAudioRef.current.play().catch(() => {});
+        alertAudioRef.current.pause();
+        alertAudioRef.current.currentTime = 0;
+    }
+  }
 
   const handleToggle = () => {
-    unlockAudio();
+    primeAudio();
+    
     if (isActive) {
       setIsActive(false);
       setState('idle');
       setCountdown(0);
     } else {
+      clickAudioRef.current?.play().catch(console.error);
       setIsActive(true);
       setState('yellow-start');
       setCountdown(30);
@@ -137,7 +119,7 @@ export function PauseTracker() {
   };
 
   const handleReset = () => {
-    unlockAudio();
+    primeAudio();
     setIsActive(false);
     setState('idle');
     setCountdown(0);
@@ -165,7 +147,9 @@ export function PauseTracker() {
 
   return (
     <>
-      <Card className="w-full max-w-sm text-center border-none shadow-2xl bg-card/80 backdrop-blur-sm dark:bg-card/50" onClick={unlockAudio}>
+      <Card 
+        className="w-full max-w-sm text-center border-none shadow-2xl bg-card/80 backdrop-blur-sm dark:bg-card/50" 
+      >
         <CardHeader>
            <CardTitle className="text-2xl">Control de Conducción</CardTitle>
            {isActive && stateText && (
@@ -230,7 +214,8 @@ export function PauseTracker() {
           </div>
         </CardFooter>
       </Card>
-      <audio ref={audioRef} src="/alert.mp3" preload="auto" />
+      <audio ref={alertAudioRef} src="/alert.mp3" preload="auto" />
+      <audio ref={clickAudioRef} src="/click.mp3" preload="auto" />
     </>
   );
 }
