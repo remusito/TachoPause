@@ -32,8 +32,42 @@ export function PauseTracker() {
   const [isActive, setIsActive] = useState(false);
   
   const { trackCycleStart } = useAchievements();
-  const alertAudioRef = useRef<HTMLAudioElement>(null);
-  const clickAudioRef = useRef<HTMLAudioElement>(null);
+  
+  // Web Audio API implementation
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Function to play a sound using Web Audio API
+  const playSound = (type: 'click' | 'alert') => {
+    if (!audioContextRef.current) {
+        // AudioContext is not initialized or supported
+        return;
+    }
+
+    // Ensure the context is running
+    audioContextRef.current.resume().then(() => {
+        const oscillator = audioContextRef.current!.createOscillator();
+        const gainNode = audioContextRef.current!.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContextRef.current!.destination);
+
+        if (type === 'click') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, audioContextRef.current!.currentTime);
+            gainNode.gain.setValueAtTime(0.5, audioContextRef.current!.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContextRef.current!.currentTime + 0.1);
+        } else { // alert
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(880, audioContextRef.current!.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioContextRef.current!.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContextRef.current!.currentTime + 0.2);
+        }
+
+        oscillator.start(audioContextRef.current!.currentTime);
+        oscillator.stop(audioContextRef.current!.currentTime + 0.2);
+    }).catch(console.error);
+  };
+
 
   // Blinking effect for yellow states
   useEffect(() => {
@@ -59,7 +93,7 @@ export function PauseTracker() {
       }, 1000);
     } else if (isActive && countdown === 0) {
       // State transitions
-      alertAudioRef.current?.play().catch(console.error);
+      playSound('alert');
       switch (state) {
         case 'yellow-start':
           setState('green');
@@ -87,18 +121,17 @@ export function PauseTracker() {
   }, [isActive, countdown, state, trackCycleStart]);
 
   const primeAudio = () => {
-    // This is the most robust way to unlock audio on user interaction
-    if (clickAudioRef.current && alertAudioRef.current) {
-        clickAudioRef.current.load();
-        alertAudioRef.current.load();
-        
-        clickAudioRef.current.play().catch(() => {});
-        clickAudioRef.current.pause();
-        clickAudioRef.current.currentTime = 0;
-
-        alertAudioRef.current.play().catch(() => {});
-        alertAudioRef.current.pause();
-        alertAudioRef.current.currentTime = 0;
+    // Initialize AudioContext on the first user interaction
+    if (!audioContextRef.current && typeof window !== 'undefined') {
+        try {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (e) {
+            console.error("Web Audio API is not supported in this browser.", e);
+        }
+    }
+    // Attempt to resume the context if it's suspended
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
     }
   }
 
@@ -110,7 +143,7 @@ export function PauseTracker() {
       setState('idle');
       setCountdown(0);
     } else {
-      clickAudioRef.current?.play().catch(console.error);
+      playSound('click');
       setIsActive(true);
       setState('yellow-start');
       setCountdown(30);
@@ -214,8 +247,7 @@ export function PauseTracker() {
           </div>
         </CardFooter>
       </Card>
-      <audio ref={alertAudioRef} src="/alert.mp3" preload="auto" />
-      <audio ref={clickAudioRef} src="/click.mp3" preload="auto" />
     </>
   );
 }
+
