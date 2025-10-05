@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -19,18 +19,49 @@ import { SettingsSheet } from '../components/settings-sheet';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MainSidebar } from '../components/main-sidebar';
+import { useAuth } from '@/firebase';
+import { useCollection } from '@/hooks/use-collection';
+import { collection, orderBy, query, limit } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
+interface HistoryItem {
+    id: string;
+    timestamp: { toDate: () => Date };
+    type: 'conduccion' | 'pausa';
+    duration: number;
+    distance?: number;
+    status: 'completado' | 'interrumpido';
+}
 
-// Mock data for demonstration purposes
-const historyData = [
-  { date: '2024-07-28', type: 'Conducción', duration: '4h 30m', distance: '412 km', status: 'Completado' },
-  { date: '2024-07-28', type: 'Pausa', duration: '0h 45m', distance: '0 km', status: 'Completado' },
-  { date: '2024-07-27', type: 'Conducción', duration: '5h 15m', distance: '480 km', status: 'Completado' },
-  { date: '2024-07-27', type: 'Pausa', duration: '1h 00m', distance: '0 km', status: 'Completado' },
-  { date: '2024-07-26', type: 'Conducción', duration: '3h 50m', distance: '350 km', status: 'Interrumpido' },
-];
+const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) {
+        return `${minutes}m ${remainingSeconds}s`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+}
 
 export default function HistoryPage() {
+  const { user } = useAuth();
+  const db = useFirestore();
+
+  const historyQuery = useMemo(() => {
+    if (!user || !db) return null;
+    return query(
+        collection(db, `users/${user.uid}/history`), 
+        orderBy('timestamp', 'desc'),
+        limit(50)
+    );
+  }, [user, db]);
+
+  const { data: historyData, loading, error } = useCollection<HistoryItem>(historyQuery);
+
   return (
     <SidebarProvider>
       <MainSidebar />
@@ -58,7 +89,7 @@ export default function HistoryPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fecha</TableHead>
+                      <TableHead>Hace</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Duración</TableHead>
                       <TableHead>Distancia</TableHead>
@@ -66,18 +97,48 @@ export default function HistoryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {historyData.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{item.date}</TableCell>
+                    {loading && (
+                        <TableRow>
+                            <TableCell colSpan={5} className='text-center'>
+                                <Icons.Spinner className="animate-spin h-6 w-6 mx-auto my-8"/>
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {!loading && !user && (
+                         <TableRow>
+                            <TableCell colSpan={5} className='text-center text-muted-foreground py-8'>
+                                Inicia sesión para ver tu historial.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {!loading && user && historyData.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} className='text-center text-muted-foreground py-8'>
+                                Aún no tienes actividad registrada.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {error && (
+                        <TableRow>
+                             <TableCell colSpan={5} className='text-center text-destructive py-8'>
+                                Error al cargar el historial: {error.message}
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {historyData.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>{formatDistanceToNow(item.timestamp.toDate(), { addSuffix: true, locale: es })}</TableCell>
                         <TableCell>
-                          <Badge variant={item.type === 'Conducción' ? 'default' : 'secondary'}>{item.type}</Badge>
+                          <Badge variant={item.type === 'conduccion' ? 'default' : 'secondary'}>
+                            {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                          </Badge>
                         </TableCell>
-                        <TableCell>{item.duration}</TableCell>
-                        <TableCell>{item.distance}</TableCell>
+                        <TableCell>{formatDuration(item.duration)}</TableCell>
+                        <TableCell>{item.distance ? `${item.distance.toFixed(2)} km` : '-'}</TableCell>
                         <TableCell>
-                          <span className={`flex items-center gap-2 ${item.status === 'Interrumpido' ? 'text-destructive' : 'text-green-500'}`}>
-                            <span className={`h-2 w-2 rounded-full ${item.status === 'Interrumpido' ? 'bg-destructive' : 'bg-green-500'}`}></span>
-                            {item.status}
+                          <span className={`flex items-center gap-2 ${item.status === 'interrumpido' ? 'text-yellow-500' : 'text-green-500'}`}>
+                            <span className={`h-2 w-2 rounded-full ${item.status === 'interrumpido' ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
+                            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                           </span>
                         </TableCell>
                       </TableRow>
