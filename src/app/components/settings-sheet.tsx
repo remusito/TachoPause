@@ -25,7 +25,7 @@ import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { usePremium } from '@/hooks/use-premium';
 import { useAchievements } from '@/hooks/use-achievements-provider';
-import { PayPalButton } from './paypal-button';
+import { PayPalButton } from '@/app/components/paypal-button';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
