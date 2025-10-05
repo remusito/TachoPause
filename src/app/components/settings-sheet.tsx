@@ -24,7 +24,7 @@ import { Icons } from '@/components/icons';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import { usePremium } from '@/hooks/use-premium';
-import { useAchievements } from '@/hooks/use-achievements-provider';
+import { useAchievements } from '@/hooks/use-achievements';
 import { PayPalButton } from '@/app/components/paypal-button';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -33,7 +33,9 @@ export function SettingsSheet() {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const { isPremium } = usePremium();
-  const { user, loading } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user;
+  const loading = auth?.loading;
   const router = useRouter();
   const { unlockAchievement } = useAchievements();
   
@@ -57,11 +59,21 @@ export function SettingsSheet() {
         // Ignore abort errors which happen when the user cancels the share sheet
         if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
           console.error('Error al compartir:', err);
-          toast({
-            title: 'Error',
-            description: 'No se pudo compartir la aplicación.',
-            variant: 'destructive',
-          });
+           try {
+            await navigator.clipboard.writeText(shareData.url);
+            toast({
+              title: 'Enlace copiado',
+              description: '¡No se pudo compartir, pero se ha copiado el enlace al portapapeles!',
+            });
+            unlockAchievement('sharer');
+          } catch (clipErr) {
+            console.error('Error al copiar al portapapeles:', clipErr);
+            toast({
+              title: 'Error',
+              description: 'No se pudo compartir ni copiar el enlace.',
+              variant: 'destructive',
+            });
+          }
         }
       }
     } else {
@@ -159,3 +171,5 @@ export function SettingsSheet() {
     </Sheet>
   );
 }
+
+    
