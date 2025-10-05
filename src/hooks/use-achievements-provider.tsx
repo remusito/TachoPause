@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
@@ -28,3 +27,5 @@ export const useAchievements = (): AchievementsContextType => {
   }
   return context;
 };
+
+    
