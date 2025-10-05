@@ -14,7 +14,7 @@ import { Icons } from '@/components/icons';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, getAuthErrorMessage } from '@/firebase';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -29,6 +29,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
+import type { AuthError } from 'firebase/auth';
 
 const signInSchema = z.object({
   email: z.string().email({ message: 'Por favor, introduce un correo válido.' }),
@@ -50,8 +51,9 @@ export type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 
 export default function LoginPage() {
-  const { signInWithGoogle, signUpWithEmailPassword, signInWithEmailPassword, user } = useAuth();
+  const { user, signInWithGoogle, signUpWithEmail, signInWithEmail } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -74,29 +76,58 @@ export default function LoginPage() {
 
   async function onSignIn(data: SignInFormValues) {
     setIsLoading(true);
-    const { success, error } = await signInWithEmailPassword(data);
-    if (!success && error) {
+    try {
+      await signInWithEmail(data.email, data.password);
+      toast({
+        title: "¡Bienvenido de nuevo!",
+        description: "Has iniciado sesión correctamente.",
+      });
+      router.push('/');
+    } catch (error) {
       toast({
         title: 'Error de inicio de sesión',
-        description: error,
+        description: getAuthErrorMessage(error as AuthError),
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   async function onSignUp(data: SignUpFormValues) {
     setIsLoading(true);
-    const { success, error } = await signUpWithEmailPassword(data);
-    if (!success && error) {
+    try {
+      await signUpWithEmail(data.email, data.password);
       toast({
+        title: "¡Cuenta creada!",
+        description: "Has sido registrado correctamente.",
+      });
+       router.push('/');
+    } catch (error) {
+       toast({
         title: 'Error de registro',
-        description: error,
+        description: getAuthErrorMessage(error as AuthError),
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      // The redirect will happen and the result will be handled by the AuthProvider
+    } catch (error) {
+      toast({
+        title: 'Error de inicio de sesión con Google',
+        description: getAuthErrorMessage(error as AuthError),
+        variant: 'destructive',
+      });
+       setIsGoogleLoading(false);
+    }
+  };
   
   return (
     <div className="flex flex-col items-center justify-center min-h-dvh bg-background text-foreground p-4">
@@ -165,7 +196,8 @@ export default function LoginPage() {
                   </span>
                 </div>
               </div>
-              <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={isLoading}>
+              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+                {isGoogleLoading && <Icons.Spinner className="mr-2 animate-spin" />}
                 <Icons.Login className="mr-2"/> Google
               </Button>
             </CardContent>
