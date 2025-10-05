@@ -83,7 +83,7 @@ const findServiceAreasFlow = ai.defineFlow(
         params: {
           location: midpoint,
           radius: 50000, // Search within a 50km radius of the midpoint
-          type: 'rest_area' as PlaceType2,
+          type: 'rest_area',
           keyword: 'truck stop, area de servicio',
           key: apiKey,
         },
