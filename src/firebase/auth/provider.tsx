@@ -1,4 +1,3 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
@@ -17,7 +16,7 @@ import {
 import { useFirebase } from '../provider';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useAchievements } from '@/hooks/use-achievements';
+import { useAchievements } from '@/hooks/use-achievements-provider';
 
 // Define the shape of the authentication context
 interface AuthContextType {
@@ -68,7 +67,7 @@ export const getAuthErrorMessage = (error: AuthError): string => {
         case 'auth/popup-closed-by-user':
             return 'La ventana de inicio de sesión ha sido cerrada por el usuario.';
         case 'auth/unauthorized-domain':
-            return 'Este dominio no está autorizado. Añádelo a la lista de dominios autorizados en la consola de Firebase.';
+            return 'Este dominio no está autorizado para el inicio de sesión con Google. Por favor, añádelo en la configuración de Firebase Authentication.';
         case 'auth/configuration-not-found':
             return 'La configuración de Firebase no es correcta. Contacta al soporte.'
         default:
@@ -236,5 +235,3 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     </AuthContext.Provider>
   );
 };
-
- 
