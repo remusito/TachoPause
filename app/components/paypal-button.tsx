@@ -26,14 +26,18 @@ const PayPalButtonComponent: React.FC = () => {
         const details = await actions.order.capture();
         console.log('Pago capturado:', details);
 
-        // Update Firestore to grant premium access
-        await purchasePremium();
+        // Safely call purchasePremium
+        if (purchasePremium) {
+          await purchasePremium();
+          toast({
+            title: '¡Pago completado!',
+            description:
+              'Has desbloqueado las funciones premium. ¡Gracias por tu apoyo!',
+          });
+        } else {
+           throw new Error('La función de compra no está disponible.');
+        }
 
-        toast({
-          title: '¡Pago completado!',
-          description:
-            'Has desbloqueado las funciones premium. ¡Gracias por tu apoyo!',
-        });
       } else {
         throw new Error('No se pudo capturar la orden de PayPal.');
       }
