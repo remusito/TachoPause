@@ -1,4 +1,3 @@
-
 'use server';
 
 import {
@@ -10,8 +9,8 @@ import {
   Timestamp,
   type Firestore,
 } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { errorEmitter } from '../firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '../firebase/errors';
 
 
 interface HistoryData {
