@@ -69,7 +69,14 @@ const findServiceAreasFlow = ai.defineFlow(
       }
 
       const route = directionsResponse.data.routes[0];
-      const overview_polyline = route.overview_polyline.points;
+      const overview_polyline = route.overview_polyline?.points;
+      if (!overview_polyline) {
+        return {
+          routeSummary: 'Ruta encontrada, pero no se pudo obtener el polyline.',
+          serviceAreas: [],
+        };
+      }
+
       const decodedPath = decode(overview_polyline);
       const midpointTuple = decodedPath[Math.floor(decodedPath.length / 2)];
       const midpoint = { lat: midpointTuple[0], lng: midpointTuple[1] };
@@ -108,7 +115,7 @@ const findServiceAreasFlow = ai.defineFlow(
         return {
           name: place.name || 'Sin nombre',
           location: place.vicinity || 'Ubicación no disponible',
-          services: place.types || [],
+          services: place.types ?? [], // seguridad: types puede ser undefined
           distance: distanceText,
           mapsUrl: mapsUrl,
         };
@@ -121,8 +128,4 @@ const findServiceAreasFlow = ai.defineFlow(
         serviceAreas: serviceAreas.slice(0, 10), // Limitar a 10 resultados
       };
     } catch (e: any) {
-      console.error('Error calling Google Maps API:', e.response?.data?.error_message || e.message);
-      throw new Error(`Error al llamar a la API de Google Maps: ${e.response?.data?.error_message || e.message}`);
-    }
-  }
-);
+      console.error('Error calling Google Maps API:', e.response?.data?.erro
