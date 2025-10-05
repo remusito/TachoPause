@@ -14,7 +14,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Icons } from '@/components/icons';
 import { useAchievements } from '@/hooks/use-achievements-provider';
 import { useAuth } from '@/firebase';
-import { useFirestore } from '@/hooks/use-firestore';
+import { useFirestore } from '@/firebase';
 import { addHistoryItem } from '@/lib/data';
 
 const formatTime = (timeInSeconds: number) => {
