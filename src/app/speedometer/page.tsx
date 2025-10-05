@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -23,8 +22,7 @@ import { cn } from '@/lib/utils';
 import { MainSidebar } from '../components/main-sidebar';
 import { useAchievements } from '@/hooks/use-achievements-provider';
 import { addHistoryItem } from '@/lib/data';
-import { useAuth } from '@/firebase';
-import { useFirestore } from '@/hooks/use-firestore';
+import { useAuth, useFirestore } from '@/firebase';
 
 
 // Helper to calculate distance between two lat/lon points in meters (Haversine formula)
