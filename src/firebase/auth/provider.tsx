@@ -63,9 +63,16 @@ export const getAuthErrorMessage = (error: AuthError): string => {
             return 'La ventana emergente de inicio de sesión fue bloqueada por el navegador. Por favor, habilita las ventanas emergentes.';
         case 'auth/operation-not-allowed':
              return 'El inicio de sesión con este método no está habilitado.';
+        case 'auth/cancelled-popup-request':
+             return 'Se ha cancelado la petición de inicio de sesión.';
+        case 'auth/popup-closed-by-user':
+            return 'La ventana de inicio de sesión ha sido cerrada por el usuario.';
+        case 'auth/unauthorized-domain':
+            return 'Este dominio no está autorizado para la autenticación. Añádelo a la lista de dominios autorizados en la consola de Firebase.';
         case 'auth/configuration-not-found':
             return 'La configuración de Firebase no es correcta. Contacta al soporte.'
         default:
+            console.error('Auth error no manejado:', error.code);
             return 'Ha ocurrido un error inesperado.';
     }
 }
@@ -91,7 +98,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        // User is signed in, check their premium status from Firestore
         const userRef = doc(firestore, 'users', user.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists() && userSnap.data().premium === true) {
@@ -100,7 +106,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsPremium(false);
         }
       } else {
-        // User is signed out
         setIsPremium(false);
       }
       setLoading(false);
@@ -111,9 +116,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle the redirect result for Google Sign-In
   useEffect(() => {
-    if (!auth || !firestore || redirectResultHandled.current) return;
+    if (!auth || !firestore || redirectResultHandled.current) {
+        return;
+    }
     
-    redirectResultHandled.current = true; // Mark as handled to avoid re-running
+    redirectResultHandled.current = true;
+    setLoading(true);
 
     const handleRedirect = async () => {
         try {
@@ -155,7 +163,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    setLoading(true);
     handleRedirect();
 
   }, [auth, firestore, toast]);
@@ -207,7 +214,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       },
       { merge: true }
     );
-    setIsPremium(true); // Update local state immediately
+    setIsPremium(true);
     unlockAchievement('premium_supporter');
   };
 
