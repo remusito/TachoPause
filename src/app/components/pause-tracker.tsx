@@ -11,9 +11,9 @@ import {
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Icons } from '@/components/icons';
-import { useAchievements } from '@/hooks/use-achievements';
+import { useAchievements } from '@/hooks/use-achievements-provider';
 import { useAuth, useFirestore } from '@/firebase';
-import { addHistoryItem } from '../../lib/data';
+import { addHistoryItem } from '@/lib/data';
 
 const formatTime = (timeInSeconds: number) => {
   const minutes = Math.floor(timeInSeconds / 60);
@@ -260,5 +260,3 @@ export function PauseTracker() {
     </>
   );
 }
-
-    
