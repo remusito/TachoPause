@@ -128,4 +128,8 @@ const findServiceAreasFlow = ai.defineFlow(
         serviceAreas: serviceAreas.slice(0, 10), // Limitar a 10 resultados
       };
     } catch (e: any) {
-      console.error('Error calling Google Maps API:', e.response?.data?.erro
+      console.error('Error calling Google Maps API:', e.response?.data?.error_message || e.message);
+      throw new Error(`Error al llamar a la API de Google Maps: ${e.response?.data?.error_message || e.message}`);
+    }
+  }
+);
