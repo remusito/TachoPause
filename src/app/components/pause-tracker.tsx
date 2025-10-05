@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -12,10 +11,9 @@ import {
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Icons } from '@/components/icons';
-import { useAchievements } from '@/hooks/use-achievements-provider';
-import { useAuth } from '@/firebase';
-import { useFirestore } from '@/firebase';
-import { addHistoryItem } from '@/lib/data';
+import { useAchievements } from '@/hooks/use-achievements';
+import { useAuth, useFirestore } from '@/firebase';
+import { addHistoryItem } from '../../lib/data';
 
 const formatTime = (timeInSeconds: number) => {
   const minutes = Math.floor(timeInSeconds / 60);
@@ -35,7 +33,8 @@ export function PauseTracker() {
   const [isBlinking, setIsBlinking] = useState(false);
   const [isActive, setIsActive] = useState(false);
   
-  const { user } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user;
   const db = useFirestore();
   const { trackCycleStart } = useAchievements();
   
@@ -261,3 +260,5 @@ export function PauseTracker() {
     </>
   );
 }
+
+    
