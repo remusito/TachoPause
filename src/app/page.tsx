@@ -11,7 +11,7 @@ import {
 import { usePremium } from '@/hooks/use-premium';
 import { MainSidebar } from './components/main-sidebar';
 import { useEffect } from 'react';
-import { useAchievements } from '@/hooks/use-achievements';
+import { useAchievements } from '@/hooks/use-achievements-provider';
 
 export default function Home() {
   const { isPremium } = usePremium();

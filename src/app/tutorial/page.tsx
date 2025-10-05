@@ -18,7 +18,7 @@ import {
 import { SettingsSheet } from '../components/settings-sheet';
 import { MainSidebar } from '../components/main-sidebar';
 import { useEffect } from 'react';
-import { useAchievements } from '@/hooks/use-achievements';
+import { useAchievements } from '@/hooks/use-achievements-provider';
 
 export default function TutorialPage() {
   const { unlockAchievement } = useAchievements();
@@ -77,9 +77,9 @@ export default function TutorialPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg flex items-center gap-2"><Icons.Refresh className="text-primary"/>Pausar y Reiniciar</h3>
+                  <h3 className="font-semibold text-lg flex items-center gap-2"><Icons.Pause className="text-primary"/>Pausar el ciclo</h3>
                   <p className="text-muted-foreground">
-                  Puedes <strong>Pausar</strong> el ciclo en cualquier momento si necesitas una parada no planificada. El botón de la derecha te permite <strong>Reiniciar</strong> el ciclo completo desde cero.
+                  Puedes <strong>Pausar</strong> el ciclo en cualquier momento si necesitas una parada no planificada. El progreso del ciclo se guardará y podrás reanudarlo cuando quieras.
                   </p>
                 </div>
 

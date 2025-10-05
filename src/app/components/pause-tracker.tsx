@@ -12,7 +12,10 @@ import {
 import { cn } from '@/lib/utils';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Icons } from '@/components/icons';
-import { useAchievements } from '@/hooks/use-achievements';
+import { useAchievements } from '@/hooks/use-achievements-provider';
+import { useAuth } from '@/firebase';
+import { useFirestore } from '@/hooks/use-firestore';
+import { addHistoryItem } from '@/lib/data';
 
 const formatTime = (timeInSeconds: number) => {
   const minutes = Math.floor(timeInSeconds / 60);
@@ -24,6 +27,7 @@ const formatTime = (timeInSeconds: number) => {
 };
 
 type TrafficLightState = 'idle' | 'yellow-start' | 'green' | 'yellow-warn' | 'red';
+type ActivityType = 'conduccion' | 'pausa';
 
 export function PauseTracker() {
   const [state, setState] = useState<TrafficLightState>('idle');
@@ -31,23 +35,18 @@ export function PauseTracker() {
   const [isBlinking, setIsBlinking] = useState(false);
   const [isActive, setIsActive] = useState(false);
   
+  const { user } = useAuth();
+  const db = useFirestore();
   const { trackCycleStart } = useAchievements();
   
-  // Web Audio API implementation
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Function to play a sound using Web Audio API
   const playSound = (type: 'click' | 'alert') => {
-    if (!audioContextRef.current) {
-        // AudioContext is not initialized or supported
-        return;
-    }
+    if (!audioContextRef.current) return;
 
-    // Ensure the context is running
     audioContextRef.current.resume().then(() => {
         const oscillator = audioContextRef.current!.createOscillator();
         const gainNode = audioContextRef.current!.createGain();
-
         oscillator.connect(gainNode);
         gainNode.connect(audioContextRef.current!.destination);
 
@@ -56,7 +55,7 @@ export function PauseTracker() {
             oscillator.frequency.setValueAtTime(600, audioContextRef.current!.currentTime);
             gainNode.gain.setValueAtTime(0.5, audioContextRef.current!.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioContextRef.current!.currentTime + 0.1);
-        } else { // alert
+        } else {
             oscillator.type = 'triangle';
             oscillator.frequency.setValueAtTime(880, audioContextRef.current!.currentTime);
             gainNode.gain.setValueAtTime(0.3, audioContextRef.current!.currentTime);
@@ -68,8 +67,17 @@ export function PauseTracker() {
     }).catch(console.error);
   };
 
+  const logActivity = (type: ActivityType, duration: number, status: 'completado' | 'interrumpido') => {
+    if (user && db) {
+      addHistoryItem(db, user.uid, {
+        type,
+        duration,
+        status,
+        distance: 0,
+      });
+    }
+  };
 
-  // Blinking effect for yellow states
   useEffect(() => {
     let blinkInterval: NodeJS.Timeout | null = null;
     if (isActive && (state === 'yellow-start' || state === 'yellow-warn')) {
@@ -84,43 +92,40 @@ export function PauseTracker() {
     };
   }, [isActive, state]);
 
-
   useEffect(() => {
     let timerInterval: NodeJS.Timeout | null = null;
 
     if (isActive && countdown > 0) {
       timerInterval = setInterval(() => {
         setCountdown((prev) => prev - 1);
-        // Beep every second on the warning state
-        if (state === 'yellow-warn') {
-            playSound('alert');
-        }
       }, 1000);
     } else if (isActive && countdown === 0) {
       // State transitions
-      
       switch (state) {
         case 'yellow-start':
           playSound('alert');
           setState('green');
           setCountdown(50);
+          logActivity('pausa', 30, 'completado');
           break;
         case 'green':
-          // We are about to transition to yellow-warn
           playSound('alert');
           setState('yellow-warn');
           setCountdown(10);
+          logActivity('conduccion', 50, 'completado');
           break;
         case 'yellow-warn':
           playSound('alert');
           setState('red');
           setCountdown(60);
+          logActivity('conduccion', 10, 'completado');
           break;
         case 'red':
-          trackCycleStart(); // A full cycle is completed when red is over.
+          trackCycleStart();
           playSound('alert');
           setState('green');
           setCountdown(50);
+          logActivity('pausa', 60, 'completado');
           break;
       }
     }
@@ -131,7 +136,6 @@ export function PauseTracker() {
   }, [isActive, countdown, state, trackCycleStart]);
 
   const primeAudio = () => {
-    // Initialize AudioContext on the first user interaction
     if (!audioContextRef.current && typeof window !== 'undefined') {
         try {
             audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -139,7 +143,6 @@ export function PauseTracker() {
             console.error("Web Audio API is not supported in this browser.", e);
         }
     }
-    // Attempt to resume the context if it's suspended
     if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume();
     }
@@ -149,6 +152,13 @@ export function PauseTracker() {
     primeAudio();
     
     if (isActive) {
+      // Logic for interrupting an active cycle
+      const currentStateDuration = state === 'yellow-start' ? 30 : state === 'green' ? 50 : state === 'yellow-warn' ? 10 : 60;
+      const elapsedTime = currentStateDuration - countdown;
+      if (elapsedTime > 0) {
+        const activityType: ActivityType = (state === 'red' || state === 'yellow-start') ? 'pausa' : 'conduccion';
+        logActivity(activityType, elapsedTime, 'interrumpido');
+      }
       setIsActive(false);
       setState('idle');
       setCountdown(0);
@@ -157,16 +167,8 @@ export function PauseTracker() {
       setIsActive(true);
       setState('yellow-start');
       setCountdown(30);
-      trackCycleStart(); // Track achievement on first start
+      if(user) trackCycleStart();
     }
-  };
-
-  const handleReset = () => {
-    primeAudio();
-    setIsActive(false);
-    setState('idle');
-    setCountdown(0);
-    setIsBlinking(false);
   };
 
   const { color, textClass, progress, icon, stateText } = useMemo(() => {
@@ -241,27 +243,21 @@ export function PauseTracker() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <div className="flex gap-4">
+          <div className="flex justify-center gap-4">
             <Button
               size="lg"
-              className="w-32"
+              className="w-40"
               onClick={handleToggle}
               variant={isActive ? 'secondary' : 'default'}
+              disabled={!user}
             >
               {isActive ? <Icons.Pause className="mr-2" /> : <Icons.Play className="mr-2" />}
               {isActive ? 'Pausar' : 'Iniciar'}
             </Button>
-            <Button size="lg" variant="outline" onClick={handleReset}>
-              <Icons.Refresh className="h-5 w-5" />
-            </Button>
           </div>
+           {!user && <p className="text-xs text-muted-foreground">Inicia sesión para guardar tu actividad</p>}
         </CardFooter>
       </Card>
     </>
   );
 }
-
-
-
-
-

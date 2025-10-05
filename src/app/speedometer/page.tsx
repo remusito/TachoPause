@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -20,12 +21,11 @@ import {
 import { SettingsSheet } from '../components/settings-sheet';
 import { cn } from '@/lib/utils';
 import { MainSidebar } from '../components/main-sidebar';
-import { useAchievements } from '@/hooks/use-achievements';
+import { useAchievements } from '@/hooks/use-achievements-provider';
+import { addHistoryItem } from '@/lib/data';
+import { useAuth } from '@/firebase';
+import { useFirestore } from '@/hooks/use-firestore';
 
-type SpeedLog = {
-  speed: number;
-  timestamp: string;
-};
 
 // Helper to calculate distance between two lat/lon points in meters (Haversine formula)
 function calculateDistance(
@@ -62,7 +62,6 @@ const formatTime = (milliseconds: number) => {
 export default function SpeedometerPage() {
   const [speed, setSpeed] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
-  const [speedLog, setSpeedLog] = useState<SpeedLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const { toast } = useToast();
@@ -75,6 +74,8 @@ export default function SpeedometerPage() {
   const lastPositionRef = useRef<GeolocationPosition | null>(null);
   const speedSamplesRef = useRef<number[]>([]);
 
+  const { user } = useAuth();
+  const db = useFirestore();
   const { updateAchievementProgress, incrementAchievementProgress } = useAchievements();
 
   const handleSuccess: PositionCallback = (position) => {
@@ -89,12 +90,6 @@ export default function SpeedometerPage() {
       updateAchievementProgress('speeder', speedKmh);
       updateAchievementProgress('supersonic', speedKmh);
     }
-
-    // Add to log
-    setSpeedLog((prevLog) => [
-      { speed: speedKmh, timestamp: new Date().toLocaleTimeString() },
-      ...prevLog,
-    ]);
 
     // Calculate distance
     if (lastPositionRef.current) {
@@ -146,7 +141,6 @@ export default function SpeedometerPage() {
       setAverageSpeed(0);
       setDistance(0);
       setElapsedTime(0);
-      setSpeedLog([]);
       setStartTime(null);
       lastPositionRef.current = null;
       speedSamplesRef.current = [];
@@ -168,7 +162,7 @@ export default function SpeedometerPage() {
     setStartTime(Date.now());
     toast({
       title: 'GPS Activado',
-      description: 'Iniciando seguimiento de velocidad.',
+      description: 'Iniciando seguimiento de velocidad y distancia.',
     });
     watchIdRef.current = navigator.geolocation.watchPosition(
       handleSuccess,
@@ -179,18 +173,37 @@ export default function SpeedometerPage() {
 
   const stopTracking = (showToast = true) => {
     setIsTracking(false);
-    if (showToast) {
-       toast({
-        title: 'GPS Desactivado',
-        description: 'Seguimiento de velocidad detenido.',
-        variant: 'destructive',
-      });
-    }
+    
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
-    // Don't reset speed to 0 immediately, keep last value
+    
+    // Save the session to Firestore if the user is logged in and there's data
+    if (user && db && distance > 0 && elapsedTime > 0) {
+      addHistoryItem(db, user.uid, {
+        type: 'conduccion',
+        duration: Math.floor(elapsedTime / 1000),
+        distance: distance / 1000, // convert meters to km
+        status: 'completado',
+        // You could add avgSpeed and maxSpeed here if your data model supports it
+      });
+       if (showToast) {
+         toast({
+          title: 'Sesión Guardada',
+          description: `Viaje de ${(distance / 1000).toFixed(2)} km guardado en tu historial.`,
+        });
+      }
+    } else if (showToast) {
+       toast({
+        title: 'GPS Desactivado',
+        description: 'Seguimiento detenido.',
+        variant: 'destructive',
+      });
+    }
+
+    // Reset stats for the next session
+    resetStats();
   };
 
   const handleToggleTracking = () => {
@@ -207,13 +220,13 @@ export default function SpeedometerPage() {
       timer = setInterval(() => {
         const elapsed = Date.now() - startTime;
         setElapsedTime(elapsed);
-        incrementAchievementProgress('explorer', 1); // Increment by 1 second
+        if (user) incrementAchievementProgress('explorer', 1); // Increment by 1 second
       }, 1000);
     }
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isTracking, startTime, incrementAchievementProgress]);
+  }, [isTracking, startTime, incrementAchievementProgress, user]);
 
   useEffect(() => {
     // Cleanup on component unmount
@@ -273,19 +286,25 @@ export default function SpeedometerPage() {
                 </div>
               </CardContent>
                <CardFooter className="flex flex-col gap-4">
-                  <Button
-                    size="lg"
-                    className="w-48"
-                    onClick={handleToggleTracking}
-                    variant={isTracking ? 'destructive' : 'default'}
-                  >
-                    {isTracking ? <Icons.Pause className="mr-2" /> : <Icons.Play className="mr-2" />}
-                    {isTracking ? 'Detener' : 'Iniciar'}
-                  </Button>
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      size="lg"
+                      className="w-40"
+                      onClick={handleToggleTracking}
+                      variant={isTracking ? 'destructive' : 'default'}
+                    >
+                      {isTracking ? <Icons.Pause className="mr-2" /> : <Icons.Play className="mr-2" />}
+                      {isTracking ? 'Detener' : 'Iniciar'}
+                    </Button>
+                  </div>
+                   {!user && <p className="text-xs text-muted-foreground">Inicia sesión para guardar tus viajes</p>}
               </CardFooter>
             </Card>
 
              <Card className="w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle>Resumen de la Sesión Actual</CardTitle>
+                </CardHeader>
                 <CardContent className="p-4 grid grid-cols-2 gap-4 text-center">
                     <div className="flex flex-col items-center gap-1">
                         <Icons.Gauge className="h-6 w-6 text-primary"/>
@@ -310,23 +329,6 @@ export default function SpeedometerPage() {
                 </CardContent>
             </Card>
 
-            <Card className="w-full max-w-sm">
-                <CardHeader>
-                    <CardTitle>Registro de Velocidad</CardTitle>
-                </CardHeader>
-                <CardContent className='p-2'>
-                    <div className='h-24 overflow-y-auto space-y-2 p-2'>
-                    {speedLog.length > 0 ? speedLog.map((log, index) => (
-                        <div key={index} className="flex justify-between items-center text-sm p-2 rounded-md bg-muted/50">
-                            <span className="text-muted-foreground">{log.timestamp}</span>
-                            <span className="font-semibold">{log.speed} km/h</span>
-                        </div>
-                    )) : (
-                        <p className="text-center text-muted-foreground pt-4">Inicia el seguimiento para ver el registro.</p>
-                    )}
-                    </div>
-                </CardContent>
-            </Card>
            </main>
            <footer className="w-full text-center p-4 absolute bottom-0">
             <p className="text-xs text-muted-foreground">
