@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, getAuthErrorMessage } from '@/firebase';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,6 +75,11 @@ export default function LoginPage() {
 
   async function onSignIn(data: SignInFormValues) {
     setIsLoading(true);
+    if (!signInWithEmail) {
+        toast({ title: 'Error', description: 'El servicio de autenticación no está listo.', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+    }
     try {
       await signInWithEmail(data.email, data.password);
       toast({
@@ -96,6 +100,11 @@ export default function LoginPage() {
 
   async function onSignUp(data: SignUpFormValues) {
     setIsLoading(true);
+    if (!signUpWithEmail) {
+        toast({ title: 'Error', description: 'El servicio de registro no está listo.', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+    }
     try {
       await signUpWithEmail(data.email, data.password);
       toast({
@@ -116,6 +125,11 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    if (!signInWithGoogle) {
+      toast({ title: 'Error', description: 'El servicio de autenticación no está listo.', variant: 'destructive' });
+      setIsGoogleLoading(false);
+      return;
+    }
     try {
       await signInWithGoogle();
       // The redirect will happen and the result will be handled by the AuthProvider
